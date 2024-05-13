@@ -6,21 +6,7 @@ import geocoder
 import numpy as np
 from sklearn.linear_model import LinearRegression
 
-# # Hide the Deploy button using CSS
-# st.markdown("""
-# <style>
-# #MainMenu {visibility: hidden;}
-# </style>
-# """, unsafe_allow_html=True)
 
-# Title of the app
-st.title('4 Lens For different Countries Dashboard')
-
-# Add some text to the app
-st.write('4 Lens For different Countries')
-
-
-# Function to calculate diversity score
 def calculate_diversity_score(row_bio):
     score = -187.3967 - 1.3534 * row_bio['Agricultural land (% of land area)'] + \
             10.9765 * row_bio['Forest area (% of land area)'] - \
@@ -374,311 +360,280 @@ def calculate_four_lens(row_lens):
 
 years = merged_df['Year'].unique()
 
-# Sidebar for selecting existing data (year and country)
-st.sidebar.subheader("Select Existing Data")
-# Dropdown for selecting year
-selected_year = st.sidebar.selectbox('Select Year', years)
+selected_tab = st.sidebar.radio("Select Tab", ["Historical Data", "User Inputs"])
+st.title('5DATA004W.2: Biodiversity Dashboard')
 
-# Dropdown for selecting country
-selected_country = st.sidebar.selectbox('Select Country', merged_df['Country Name'].unique())
 
-selected_agricultural = 0
-selected_forest = 0
-selected_wheat = 0
+if selected_tab == "Historical Data":
+    st.sidebar.subheader("Select Existing Data")
+    selected_year = st.sidebar.selectbox('Select Year', years)
 
-# Add a sidebar
-st.sidebar.header('Choose Data')
+    st.subheader('Historical Data')
 
-# Checkbox for showing user input section
-show_user_input = st.sidebar.checkbox('Enter User Input', value=True)
+    st.write(
+        'This dashboard represents data analysis conducted in a Group coursework, using publicly available data to '
+        'create a "Biodiversity Score" by applying regression analysis.')
 
-# Sidebar for entering user input (conditionally displayed)
-if show_user_input:
-    st.sidebar.subheader("Enter User Input")
-    # Text input for agricultural land
-    selected_agricultural = st.sidebar.text_input('Enter Agricultural land (% of land area):', '')
+    st.write(
+        'Using the Biodiversity Score (plus some extra data) the 4 lenses (Health, Carbon Emissions, Environment and '
+        'Society) were calculated, representing the Impact of our score.')
+
+    st.write('Select a country and a year from the sidebar to see their scorecard (based on existing data).')
+
+    selected_country = st.sidebar.selectbox('Select Country', merged_df['Country Name'].unique())
+    country_data = merged_df[merged_df['Country Name'] == selected_country]
+
+    if selected_country:
+        lens_carbon, lens_environment, lens_society, lens_health = calculate_four_lens(country_data.iloc[0])
+        # country_lens = list(country_lens)
+        country_diversity_score = country_data.iloc[0]['Diversity_Score']
+        lens_values = [lens_carbon, lens_environment, lens_society, lens_health]
+        print("# 2 #")
+        # print(lens_values)
+        abs_max = max(map(abs, lens_values))
+        normalized_lens_values = [value / abs_max * 100 for value in lens_values]
+        # print(normalized_lens_values)
+        sum_normalized = sum(normalized_lens_values)
+        if sum_normalized == 0:
+            adjusted_lens_values = normalized_lens_values
+        else:
+            scale_factor = 100 / sum_normalized
+            adjusted_lens_values = [value * scale_factor for value in normalized_lens_values]
+        adjusted_lens_values = np.clip(adjusted_lens_values, -100, 100)
+        # print(adjusted_lens_values)
+        country_lens_df = pd.DataFrame({
+            'Lens': ['Carbon', 'Environment', 'Society', 'Health'],
+            'Value': adjusted_lens_values  # [lens_carbon, lens_environment, lens_society, lens_health]
+        })
+
+        # Display lenses and biodiversity score as circles in the same row
+        st.subheader('Visualizations')
+
+        # Define CSS style for the container
+        css_style = """
+        <style>
+        .circle-container {
+            display: flex;
+            margin-top: 30px; /* Adjust the margin-top value as needed */
+        }
+
+        .circle {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background-color: #1f77b4;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-right: 20px;
+            position: relative;
+        }
+
+        .circle-number {
+            position: absolute;
+            top: -25px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            color: black;
+        }
+        </style>
+        """
+
+        # Begin the circle container
+        circle_html = """
+        <div class='circle-container'>
+        """
+
+        # Display lenses as circles with lens number on top
+        for i, row in country_lens_df.iterrows():
+            lens_number = row['Lens']
+            lens_value = float(row['Value'])
+            background_color = calculate_color(lens_value)
+            circle_html += f"""
+            <div class='circle' style='background-color: {background_color}'>
+                <div class='circle-number' style='font-size: 10px;'>{lens_number} Impact(%)</div>
+                {lens_value:.2f}
+            </div>
+            """
+
+        # Display biodiversity score in a green circle
+        circle_html += f"""
+        <div class='circle' style='background-color: #1f77b4;'>
+            <div class='circle-number' style='font-size: 10px;'>Biodiversity</div>
+            {country_diversity_score:.2f}
+        </div>
+        """
+
+        # End the circle container
+        circle_html += """
+        </div>
+        """
+
+        # Render HTML using components.html
+        html_output = css_style + circle_html
+        html(html_output)
+
+        tooltip_content = {
+            "html": "<b>Biodiversity Score:</b> {Diversity_Score}",
+            "style": {
+                "backgroundColor": "white",
+                "color": "black"
+            }
+        }
+
+        map_styles = {
+            "Light": "mapbox://styles/mapbox/light-v9",
+            "Dark": "mapbox://styles/mapbox/dark-v9",
+            "Satellite": "mapbox://styles/mapbox/satellite-v9"
+        }
+
+        selected_style = st.sidebar.selectbox("Select Map Style", list(map_styles.keys()), index=0)
+
+        # Create a PyDeck map with tooltip and zoom focused on the selected country
+        map_1 = pdk.Deck(
+            map_style=map_styles[selected_style],
+            layers=[
+                pdk.Layer(
+                    "ScatterplotLayer",
+                    data=country_data,
+                    get_position=["Longitude", "Latitude"],
+                    get_fill_color=[255, 0, 0, 50],  # RGBA color for the points
+                    get_radius=100,
+                    tooltip=tooltip_content,  # Add tooltip
+                )
+            ],
+            initial_view_state={
+                "latitude": country_data["Latitude"].mean(),  # Center latitude of the selected country
+                "longitude": country_data["Longitude"].mean(),  # Center longitude of the selected country
+                "zoom": 3  # Adjust zoom level as needed
+            }
+        )
+
+        # Render the PyDeck map in the Streamlit app
+        st.pydeck_chart(map_1)
+
+elif selected_tab == 'User Inputs':
+    st.sidebar.header('User Data')
+    st.sidebar.subheader('Enter the following inputs:')
+
+    st.write('The regression analysis conducted by our group can be utilized to pride insight into user-inputted data.')
+    st.write('Using the sidebar, insert the requested data to see the results of the regression model.')
+
+    selected_agricultural = st.sidebar.number_input('Enter Agricultural land (% of land area):', min_value=0.0,
+                                                    max_value=100.0, step=0.01)
 
     # Text input for forest area
-    selected_forest = st.sidebar.text_input('Enter Forest area (% of land area):', '')
-
+    selected_forest = st.sidebar.number_input('Enter Forest area (% of land area):', min_value=0.0,
+                                              max_value=100.0, step=0.01)
     # Text input for wheat yield
-    selected_wheat = st.sidebar.text_input('Enter Wheat Yield (tonnes/km2):', '')
+    selected_wheat = st.sidebar.number_input('Enter Wheat Yield (tonnes/km2):', min_value=0.0,
+                                             max_value=10.0, step=0.01)
+    if selected_agricultural and selected_forest and selected_wheat:
+        lens_carbon, lens_environment, lens_society, lens_health = calculate_four_lens({
+            'Agricultural land (% of land area)': float(selected_agricultural),
+            'Forest area (% of land area)': float(selected_forest),
+            'Wheat Yield (tonnes/km2)': float(selected_wheat)
+        })
+        user_diversity_score = calculate_diversity_score({
+            'Agricultural land (% of land area)': float(selected_agricultural),
+            'Forest area (% of land area)': float(selected_forest),
+            'Wheat Yield (tonnes/km2)': float(selected_wheat)
+        })
+        lens_values = [lens_carbon, lens_environment, lens_society, lens_health]
+        print("# 1 #")
+        # print(lens_values)
+        normalized_lens_values = [(value - min(lens_values)) / (max(lens_values) - min(lens_values)) * 200 - 100 for
+                                  value
+                                  in lens_values]
+        # print(normalized_lens_values)
+        sum_normalized = sum(normalized_lens_values)
+        if sum_normalized == 0:
+            adjusted_lens_values = normalized_lens_values
+        else:
+            scale_factor = 100 / sum_normalized
+            adjusted_lens_values = [value * scale_factor for value in normalized_lens_values]
+        adjusted_lens_values = np.clip(adjusted_lens_values, -100, 100)
+        # print(adjusted_lens_values)
+        user_lens_df = pd.DataFrame({
+            'Lens': ['Carbon', 'Environment', 'Society', 'Health'],
+            'Value': adjusted_lens_values  # [lens_carbon, lens_environment, lens_society, lens_health]
+        })
 
-# Filter data based on selected country
-country_data = merged_df[merged_df['Country Name'] == selected_country]
-#
-# # Display selected data
-# if selected_agricultural == 'Agricultural land':
-#     selected_column = 'Agricultural land (% of land area)'
-# elif selected_data == 'Forest area':
-#     selected_column = 'Forest area (% of land area)'
-# else:
-#     selected_column = 'Wheat Yield (tonnes/km2)'
+        # Display scorecard for user input
+        # if selected_agricultural and selected_forest and selected_wheat:
+        #     st.subheader('User Input Scorecard')
+        #     st.write(user_lens_df)
+        #
+        #     st.write('User Input Biodiversity Score:', user_diversity_score)
+        # Display lenses and biodiversity score as circles in the same row
+        st.subheader('User Input Scorecard')
 
-# Calculate four lens based on user input
-if selected_agricultural and selected_forest and selected_wheat:
-    lens_carbon, lens_environment, lens_society, lens_health = calculate_four_lens({
-        'Agricultural land (% of land area)': float(selected_agricultural),
-        'Forest area (% of land area)': float(selected_forest),
-        'Wheat Yield (tonnes/km2)': float(selected_wheat)
-    })
-    user_diversity_score = calculate_diversity_score({
-        'Agricultural land (% of land area)': float(selected_agricultural),
-        'Forest area (% of land area)': float(selected_forest),
-        'Wheat Yield (tonnes/km2)': float(selected_wheat)
-    })
-    lens_values = [lens_carbon, lens_environment, lens_society, lens_health]
-    print("# 1 #")
-    # print(lens_values)
-    normalized_lens_values = [(value - min(lens_values)) / (max(lens_values) - min(lens_values)) * 200 - 100 for value
-                              in lens_values]
-    # print(normalized_lens_values)
-    sum_normalized = sum(normalized_lens_values)
-    if sum_normalized == 0:
-        adjusted_lens_values = normalized_lens_values
-    else:
-        scale_factor = 100 / sum_normalized
-        adjusted_lens_values = [value * scale_factor for value in normalized_lens_values]
-    adjusted_lens_values = np.clip(adjusted_lens_values, -100, 100)
-    # print(adjusted_lens_values)
-    user_lens_df = pd.DataFrame({
-        'Lens': ['Carbon', 'Environment', 'Society', 'Health'],
-        'Value': adjusted_lens_values  # [lens_carbon, lens_environment, lens_society, lens_health]
-    })
+        # Define CSS style for the container
+        css_style = """
+        <style>
+        .circle-container {
+            display: flex;
+            margin-top: 30px; /* Adjust the margin-top value as needed */
+        }
 
-    # Display scorecard for user input
-    # if selected_agricultural and selected_forest and selected_wheat:
-    #     st.subheader('User Input Scorecard')
-    #     st.write(user_lens_df)
-    #
-    #     st.write('User Input Biodiversity Score:', user_diversity_score)
-    # Display lenses and biodiversity score as circles in the same row
-    st.subheader('User Input Scorecard')
+        .circle {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background-color: #1f77b4;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-right: 20px;
+            position: relative;
+        }
 
-    # Define CSS style for the container
-    css_style = """
-    <style>
-    .circle-container {
-        display: flex;
-        margin-top: 30px; /* Adjust the margin-top value as needed */
-    }
-    
-    .circle {
-        width: 120px;
-        height: 120px;
-        border-radius: 50%;
-        background-color: #1f77b4;
-        color: white;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        margin-right: 20px;
-        position: relative;
-    }
-    
-    .circle-number {
-        position: absolute;
-        top: -25px;
-        left: 0;
-        right: 0;
-        text-align: center;
-        color: black;
-    }
-    </style>
-    """
+        .circle-number {
+            position: absolute;
+            top: -25px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            color: black;
+        }
+        </style>
+        """
 
-    # Begin the circle container
-    circle_html = """
-    <div class='circle-container'>
-    """
-    print("*******")
-    print(user_lens_df.head())
-    print("*******")
-    # Display lenses as circles with lens number on top
-    for i, row in user_lens_df.iterrows():
-        lens_number = row['Lens']
-        lens_value = float(row['Value'])
-        background_color = calculate_color(lens_value)
+        # Begin the circle container
+        circle_html = """
+        <div class='circle-container'>
+        """
+        print("*******")
+        print(user_lens_df.head())
+        print("*******")
+        # Display lenses as circles with lens number on top
+        for i, row in user_lens_df.iterrows():
+            lens_number = row['Lens']
+            lens_value = float(row['Value'])
+            background_color = calculate_color(lens_value)
+            circle_html += f"""
+            <div class='circle' style='background-color: {background_color}'>
+                <div class='circle-number' style='font-size: 10px;'>{lens_number} Impact(%)</div>
+                {lens_value:.2f}  <!-- Format as float -->
+            </div>
+            """
+
+        # Display biodiversity score in a green circle
         circle_html += f"""
-        <div class='circle' style='background-color: {background_color}'>
-            <div class='circle-number' style='font-size: 10px;'>{lens_number} Impact(%)</div>
-            {lens_value:.2f}  <!-- Format as float -->
+        <div class='circle' style='background-color: #1f77b4;'>
+            <div class='circle-number' style='font-size: 10px;'>Biodiversity</div>
+            {user_diversity_score:.2f}
         </div>
         """
 
-    # Display biodiversity score in a green circle
-    circle_html += f"""
-    <div class='circle' style='background-color: #1f77b4;'>
-        <div class='circle-number' style='font-size: 10px;'>Biodiversity</div>
-        {user_diversity_score:.2f}
-    </div>
-    """
-
-    # End the circle container
-    circle_html += """
-    </div>
-    """
-
-    # Render HTML using components.html
-    html_output = css_style + circle_html
-    html(html_output)
-
-# Display scorecard for merged data
-st.subheader('History Data')
-st.write('Select a country from the sidebar to see scorecard based on existing data.')
-
-# Display scorecard based on merged data
-if selected_country:
-    lens_carbon, lens_environment, lens_society, lens_health = calculate_four_lens(country_data.iloc[0])
-    # country_lens = list(country_lens)
-    country_diversity_score = country_data.iloc[0]['Diversity_Score']
-    lens_values = [lens_carbon, lens_environment, lens_society, lens_health]
-    print("# 2 #")
-    # print(lens_values)
-    abs_max = max(map(abs, lens_values))
-    normalized_lens_values = [value / abs_max * 100 for value in lens_values]
-    # print(normalized_lens_values)
-    sum_normalized = sum(normalized_lens_values)
-    if sum_normalized == 0:
-        adjusted_lens_values = normalized_lens_values
-    else:
-        scale_factor = 100 / sum_normalized
-        adjusted_lens_values = [value * scale_factor for value in normalized_lens_values]
-    adjusted_lens_values = np.clip(adjusted_lens_values, -100, 100)
-    # print(adjusted_lens_values)
-    country_lens_df = pd.DataFrame({
-        'Lens': ['Carbon', 'Environment', 'Society', 'Health'],
-        'Value': adjusted_lens_values  # [lens_carbon, lens_environment, lens_society, lens_health]
-    })
-
-    # Display lenses and biodiversity score as circles in the same row
-    st.subheader('Visualizations')
-
-    # Define CSS style for the container
-    css_style = """
-    <style>
-    .circle-container {
-        display: flex;
-        margin-top: 30px; /* Adjust the margin-top value as needed */
-    }
-
-    .circle {
-        width: 120px;
-        height: 120px;
-        border-radius: 50%;
-        background-color: #1f77b4;
-        color: white;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        margin-right: 20px;
-        position: relative;
-    }
-
-    .circle-number {
-        position: absolute;
-        top: -25px;
-        left: 0;
-        right: 0;
-        text-align: center;
-        color: black;
-    }
-    </style>
-    """
-
-    # Begin the circle container
-    circle_html = """
-    <div class='circle-container'>
-    """
-
-    # Display lenses as circles with lens number on top
-    for i, row in country_lens_df.iterrows():
-        lens_number = row['Lens']
-        lens_value = float(row['Value'])
-        background_color = calculate_color(lens_value)
-        circle_html += f"""
-        <div class='circle' style='background-color: {background_color}'>
-            <div class='circle-number' style='font-size: 10px;'>{lens_number} Impact(%)</div>
-            {lens_value:.2f}
+        # End the circle container
+        circle_html += """
         </div>
         """
 
-    # Display biodiversity score in a green circle
-    circle_html += f"""
-    <div class='circle' style='background-color: #1f77b4;'>
-        <div class='circle-number' style='font-size: 10px;'>Biodiversity</div>
-        {country_diversity_score:.2f}
-    </div>
-    """
-
-    # End the circle container
-    circle_html += """
-    </div>
-    """
-
-    # Render HTML using components.html
-    html_output = css_style + circle_html
-    html(html_output)
-
-# Calculate diversity score
-# country_data['Diversity Score'] = country_data.apply(calculate_diversity_score, axis=1)
-
-# Create a PyDeck scatter plot layer
-# layer = pdk.Layer(
-#     "ScatterplotLayer",
-#     data=country_data,
-#     get_position=["Longitude", "Latitude"],
-#     get_fill_color=[255, 0, 0, 200],  # RGBA color for the points
-#     get_radius=100000,
-# )
-#
-# # Set the viewport for the PyDeck map
-# view_state = pdk.ViewState(latitude=0, longitude=0, zoom=1)
-#
-# # Create a PyDeck map
-# map_1 = pdk.Deck(
-#     map_style="mapbox://styles/mapbox/light-v9",
-#     layers=[layer],
-#     initial_view_state=view_state,
-# )
-
-# Define the tooltip content
-tooltip_content = {
-    "html": "<b>Biodiversity Score:</b> {Diversity_Score}",
-    "style": {
-        "backgroundColor": "white",
-        "color": "black"
-    }
-}
-
-map_styles = {
-    "Light": "mapbox://styles/mapbox/light-v9",
-    "Dark": "mapbox://styles/mapbox/dark-v9",
-    "Satellite": "mapbox://styles/mapbox/satellite-v9"
-}
-
-selected_style = st.sidebar.selectbox("Select Map Style", list(map_styles.keys()), index=0)
-
-# Create a PyDeck map with tooltip and zoom focused on the selected country
-map_1 = pdk.Deck(
-    map_style=map_styles[selected_style],
-    layers=[
-        pdk.Layer(
-            "ScatterplotLayer",
-            data=country_data,
-            get_position=["Longitude", "Latitude"],
-            get_fill_color=[255, 0, 0, 50],  # RGBA color for the points
-            get_radius=100,
-            tooltip=tooltip_content,  # Add tooltip
-        )
-    ],
-    initial_view_state={
-        "latitude": country_data["Latitude"].mean(),  # Center latitude of the selected country
-        "longitude": country_data["Longitude"].mean(),  # Center longitude of the selected country
-        "zoom": 3  # Adjust zoom level as needed
-    }
-)
-
-# Render the PyDeck map in the Streamlit app
-st.pydeck_chart(map_1)
-
+        # Render HTML using components.html
+        html_output = css_style + circle_html
+        html(html_output)
