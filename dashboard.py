@@ -211,3 +211,201 @@ selected_country = st.sidebar.selectbox('Select Country', merged_df['Country Nam
 selected_agricultural = 0
 selected_forest = 0
 
+if show_user_input:
+    st.sidebar.subheader("Enter User Input")
+
+    selected_agricultural = st.sidebar.text_input('Enter Agricultural land (% of land area):', '')
+    selected_forest = st.sidebar.text_input('Enter Forest area (% of land area):', '')
+    selected_wheat = st.sidebar.text_input('Enter Wheat Yield (tonnes/km2):', '')
+
+country_data = merged_df[merged_df['Country Name'] == selected_country]
+#
+# if selected_agricultural == 'Agricultural land':
+#     selected_column = 'Agricultural land (% of land area)'
+# elif selected_data == 'Forest area':
+#     selected_column = 'Forest area (% of land area)'
+# else:
+#     selected_column = 'Wheat Yield (tonnes/km2)'
+
+if selected_agricultural and selected_forest and selected_wheat:
+    user_lens = calculate_four_lens({
+        'Agricultural land (% of land area)': float(selected_agricultural),
+        'Forest area (% of land area)': float(selected_forest),
+        'Wheat Yield (tonnes/km2)': float(selected_wheat)
+    })
+    user_diversity_score = calculate_diversity_score({
+        'Agricultural land (% of land area)': float(selected_agricultural),
+        'Forest area (% of land area)': float(selected_forest),
+        'Wheat Yield (tonnes/km2)': float(selected_wheat)
+    })
+    user_lens_df = pd.DataFrame({
+        'Lens': ['Lens 1', 'Lens 2', 'Lens 3', 'Lens 4'],
+        'Value': user_lens
+    })
+
+    # if selected_agricultural and selected_forest and selected_wheat:
+    #     st.subheader('User Input Scorecard')
+    #     st.write(user_lens_df)
+    #
+    #     st.write('User Input Biodiversity Score:', user_diversity_score)
+    st.subheader('User Input Scorecard')
+
+    st.write("")
+
+    css_style = """
+    <style>
+    .circle-container {
+        display: flex;
+        margin-top: 30px; /* Adjust the margin-top value as needed */
+    }
+
+    .circle {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        background-color: #1f77b4;
+        color: white;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-right: 20px;
+        position: relative;
+    }
+
+    .circle-number {
+        position: absolute;
+        top: -25px;
+        left: 0;
+        right: 0;
+        text-align: center;
+        color: black;
+    }
+    </style>
+    """
+
+    circle_html = """
+    <div class='circle-container'>
+    """
+    print("*******")
+    print(user_lens_df.head())
+    print("*******")
+    for i, row in user_lens_df.iterrows():
+        lens_number = row['Lens'].split()[1]
+        lens_value = float(row['Value'])
+        circle_html += f"""
+        <div class='circle'>
+            <div class='circle-number'>Lens {lens_number}</div>
+            {lens_value:.2f}  <!-- Format as float -->
+        </div>
+        """
+
+    circle_html += f"""
+    <div class='circle' style='background-color: #2ca02c;'>
+        <div class='circle-number'>Biodiversity</div>
+        {user_diversity_score:.2f}
+    </div>
+    """
+
+    circle_html += """
+    </div>
+    """
+
+    html_output = css_style + circle_html
+    html(html_output)
+
+st.subheader('Merged Data Scorecard')
+st.write('Select a country from the sidebar to see scorecard based on merged data.')
+
+if selected_country:
+    country_lens = calculate_four_lens(country_data.iloc[0])
+    country_lens = list(country_lens)
+    country_diversity_score = country_data.iloc[0]['Diversity Score']
+    country_lens_df = pd.DataFrame({
+        'Lens': ['Lens 1', 'Lens 2', 'Lens 3', 'Lens 4'],
+        'Value': country_lens
+    })
+
+    st.subheader('Visualizations')
+
+    css_style = """
+    <style>
+    .circle-container {
+        display: flex;
+        margin-top: 30px; /* Adjust the margin-top value as needed */
+    }
+
+    .circle {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        background-color: #1f77b4;
+        color: white;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-right: 20px;
+        position: relative;
+    }
+
+    .circle-number {
+        position: absolute;
+        top: -25px;
+        left: 0;
+        right: 0;
+        text-align: center;
+        color: black;
+    }
+    </style>
+    """
+
+    circle_html = """
+    <div class='circle-container'>
+    """
+
+    for i, lens_value in enumerate(country_lens):
+        lens_number = i + 1
+        circle_html += f"""
+        <div class='circle'>
+            <div class='circle-number'>Lens {lens_number}</div>
+            {lens_value:.2f}
+        </div>
+        """
+
+    circle_html += f"""
+    <div class='circle' style='background-color: #2ca02c;'>
+        <div class='circle-number'>Biodiversity</div>
+        {country_diversity_score:.2f}
+    </div>
+    """
+
+    circle_html += """
+    </div>
+    """
+
+    html_output = css_style + circle_html
+    html(html_output)
+
+country_data['Diversity Score'] = country_data.apply(calculate_diversity_score, axis=1)
+
+layer = pdk.Layer(
+    "ScatterplotLayer",
+    data=country_data,
+    get_position=["Longitude", "Latitude"],
+    get_fill_color=[255, 0, 0, 200],  # RGBA color for the points
+    get_radius=100000,
+)
+
+view_state = pdk.ViewState(latitude=0, longitude=0, zoom=1)
+
+map_1 = pdk.Deck(
+    map_style="mapbox://styles/mapbox/light-v9",
+    layers=[layer],
+    initial_view_state=view_state,
+)
+
+st.pydeck_chart(map_1)
+
+# st.write('## Diversity Score Card')
+# st.write(f'Country: {selected_country}')
+# st.write(f'Selected Data: {selected_data}')
+# st.write(f'Diversity Score: {country_data["Diversity Score"].values[0]}')
