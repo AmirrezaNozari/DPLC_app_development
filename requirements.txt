@@ -2,3 +2,6 @@ streamlit
 geopy
 geocoder
 scikit-learn
+pydeck
+pandas
+numpy

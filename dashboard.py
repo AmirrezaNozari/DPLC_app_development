@@ -329,16 +329,17 @@ def calculate_four_lens(row_lens):
     return lens_carbon_row, lens_environment_row, lens_society_row, lens_health_row
 
 
+merged_df.dropna(subset=['Year'], inplace=True)
+merged_df['Year'] = merged_df['Year'].astype(int)
 years = merged_df['Year'].unique()
 
 selected_tab = st.sidebar.radio("Select Tab", ["Historical Data", "User Inputs"])
 st.title('5DATA004W.2: Biodiversity Dashboard')
 
-
 if selected_tab == "Historical Data":
     st.sidebar.subheader("Select Existing Data")
     selected_year = st.sidebar.selectbox('Select Year', years)
-
+    # selected_year = st.sidebar.number_input('Select Year:', min_value=min(years), max_value=max(years), step=1)
     st.subheader('Historical Data')
 
     st.write(
@@ -353,12 +354,15 @@ if selected_tab == "Historical Data":
 
     selected_country = st.sidebar.selectbox('Select Country', merged_df['Country Name'].unique())
     country_data = merged_df[merged_df['Country Name'] == selected_country]
+    if selected_year in country_data.Year.values:
+        if country_data[country_data['Year'] == selected_year].shape[0] > 0:
+            country_data = country_data[country_data['Year'] == selected_year]
 
     if selected_country:
         lens_carbon, lens_environment, lens_society, lens_health = calculate_four_lens(country_data.iloc[0])
         country_diversity_score = country_data.iloc[0]['Diversity_Score']
         lens_values = [lens_carbon, lens_environment, lens_society, lens_health]
-        print("# 2 #")
+        # print("# 2 #")
         abs_max = max(map(abs, lens_values))
         normalized_lens_values = [value / abs_max * 100 for value in lens_values]
         sum_normalized = sum(normalized_lens_values)
@@ -479,10 +483,14 @@ elif selected_tab == 'User Inputs':
     st.write('The regression analysis conducted by our group can be utilized to pride insight into user-inputted data.')
     st.write('Using the sidebar, insert the requested data to see the results of the regression model.')
 
-    selected_agricultural = st.sidebar.number_input('Enter Agricultural land (% of land area):', min_value=0.0,
+    st.write('WARNING: For Agricultural Land and Forest Area (due to them representing percentages) enter only values '
+             'from 0 to 100. For Wheat Yield, only enter values from 0 to 10 (according to our data, anything more '
+             'than 10 tonnes/km2 exceeds regular wheat yield conventions)')
+
+    selected_agricultural = st.sidebar.number_input('Enter Agricultural Land (% of land area):', min_value=0.0,
                                                     max_value=100.0, step=0.01)
 
-    selected_forest = st.sidebar.number_input('Enter Forest area (% of land area):', min_value=0.0,
+    selected_forest = st.sidebar.number_input('Enter Forest Area (% of land area):', min_value=0.0,
                                               max_value=100.0, step=0.01)
     selected_wheat = st.sidebar.number_input('Enter Wheat Yield (tonnes/km2):', min_value=0.0,
                                              max_value=10.0, step=0.01)
@@ -498,7 +506,7 @@ elif selected_tab == 'User Inputs':
             'Wheat Yield (tonnes/km2)': float(selected_wheat)
         })
         lens_values = [lens_carbon, lens_environment, lens_society, lens_health]
-        print("# 1 #")
+        # print("# 1 #")
         normalized_lens_values = [(value - min(lens_values)) / (max(lens_values) - min(lens_values)) * 200 - 100 for
                                   value
                                   in lens_values]
@@ -550,9 +558,9 @@ elif selected_tab == 'User Inputs':
         circle_html = """
         <div class='circle-container'>
         """
-        print("*******")
-        print(user_lens_df.head())
-        print("*******")
+        # print("*******")
+        # print(user_lens_df.head())
+        # print("*******")
         for i, row in user_lens_df.iterrows():
             lens_number = row['Lens']
             lens_value = float(row['Value'])
