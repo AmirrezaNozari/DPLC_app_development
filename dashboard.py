@@ -26,15 +26,12 @@ def transform_output(prediction):
 
 
 def calculate_color(value):
-    # Normalize value to the range [0, 1]
     normalized_value = (value + 100) / 200
-    # Interpolate color between red and green
     red = int(255 * (1 - normalized_value))
     green = int(255 * normalized_value)
     return f'rgb({red}, {green}, 0)'
 
 
-# Build model to predict 4lens from Year
 carbon_impact = {
     2001: -21.82,
     2002: -21.07,
@@ -57,10 +54,8 @@ carbon_impact = {
     2019: 28.09,
     2020: 22.58
 }
-# Extract years and corresponding carbon impact values
 years = np.array(list(carbon_impact.keys())).reshape(-1, 1)
 carbon_values = np.array(list(carbon_impact.values()))
-# Create and fit the linear regression model
 carbon_impact_model = LinearRegression()
 carbon_impact_model.fit(years, carbon_values)
 max_abs_carbon_value = max(abs(carbon_values.min()), abs(carbon_values.max()))
@@ -87,10 +82,8 @@ environment_impact = {
     2019: -27.88,
     2020: -29.3
 }
-# Extract years and corresponding carbon impact values
 years = np.array(list(environment_impact.keys())).reshape(-1, 1)
 environment_values = np.array(list(environment_impact.values()))
-# Create and fit the linear regression model
 environment_impact_model = LinearRegression()
 environment_impact_model.fit(years, environment_values)
 max_abs_environment_values = max(abs(environment_values.min()), abs(environment_values.max()))
@@ -117,10 +110,8 @@ society_impact = {
     2019: -11.71,
     2020: -13.39
 }
-# Extract years and corresponding carbon impact values
 years = np.array(list(society_impact.keys())).reshape(-1, 1)
 society_values = np.array(list(society_impact.values()))
-# Create and fit the linear regression model
 society_impact_model = LinearRegression()
 society_impact_model.fit(years, society_values)
 max_abs_society_values = max(abs(society_values.min()), abs(society_values.max()))
@@ -147,15 +138,12 @@ health_impact = {
     2019: -32.31,
     2020: -34.31
 }
-# Extract years and corresponding carbon impact values
 years = np.array(list(health_impact.keys())).reshape(-1, 1)
 health_values = np.array(list(health_impact.values()))
-# Create and fit the linear regression model
 health_impact_model = LinearRegression()
 health_impact_model.fit(years, health_values)
 max_abs_health_values = max(abs(health_values.min()), abs(health_values.max()))
 
-# Build a model to predict 4lens from biodiversity score #
 bio_carbon_impact = {
     24.73: -21.82,
     23.95: -21.07,
@@ -178,10 +166,8 @@ bio_carbon_impact = {
     -8.15: 28.09,
     -6.31: 22.58
 }
-# Extract years and corresponding carbon impact values
 bio_years = np.array(list(bio_carbon_impact.keys())).reshape(-1, 1)
 bio_carbon_values = np.array(list(bio_carbon_impact.values()))
-# Create and fit the linear regression model
 bio_carbon_impact_model = LinearRegression()
 bio_carbon_impact_model.fit(bio_years, bio_carbon_values)
 max_abs_bio_carbon_values = max(abs(bio_carbon_values.min()), abs(bio_carbon_values.max()))
@@ -208,10 +194,8 @@ bio_environment_impact = {
     -8.15: -27.88,
     -6.31: -29.3
 }
-# Extract years and corresponding carbon impact values
 bio_years = np.array(list(bio_environment_impact.keys())).reshape(-1, 1)
 bio_environment_values = np.array(list(bio_environment_impact.values()))
-# Create and fit the linear regression model
 bio_environment_impact_model = LinearRegression()
 bio_environment_impact_model.fit(bio_years, bio_environment_values)
 max_abs_bio_environment_values = max(abs(bio_environment_values.min()), abs(bio_environment_values.max()))
@@ -238,10 +222,8 @@ bio_society_impact = {
     -8.15: -11.71,
     -6.31: -13.39
 }
-# Extract years and corresponding carbon impact values
 bio_years = np.array(list(bio_society_impact.keys())).reshape(-1, 1)
 bio_society_values = np.array(list(bio_society_impact.values()))
-# Create and fit the linear regression model
 bio_society_impact_model = LinearRegression()
 bio_society_impact_model.fit(bio_years, bio_society_values)
 max_abs_bio_society_values = max(abs(bio_society_values.min()), abs(bio_society_values.max()))
@@ -268,72 +250,61 @@ bio_health_impact = {
     -8.15: -32.31,
     -6.31: -34.31
 }
-# Extract years and corresponding carbon impact values
 bio_years = np.array(list(bio_health_impact.keys())).reshape(-1, 1)
 bio_health_values = np.array(list(bio_health_impact.values()))
-# Create and fit the linear regression model
 bio_health_impact_model = LinearRegression()
 bio_health_impact_model.fit(bio_years, bio_health_values)
 max_abs_bio_health_values = max(abs(bio_health_values.min()), abs(bio_health_values.max()))
 
 
-# Predict the carbon impact for a given year
 def predict_carbon_impact(year):
     prediction = carbon_impact_model.predict(np.array([[year]]))[0]
     scaled_prediction = (prediction / max_abs_carbon_value) * 100
     return scaled_prediction
 
 
-# Predict the carbon impact for a given year
 def predict_environment_impact(year):
     prediction = environment_impact_model.predict(np.array([[year]]))[0]
     scaled_prediction = (prediction / max_abs_environment_values) * 100
     return scaled_prediction
 
 
-# Predict the carbon impact for a given year
 def predict_society_impact(year):
     prediction = society_impact_model.predict(np.array([[year]]))[0]
     scaled_prediction = (prediction / max_abs_society_values) * 100
     return scaled_prediction
 
 
-# Predict the carbon impact for a given year
 def predict_health_impact(year):
     prediction = health_impact_model.predict(np.array([[year]]))[0]
     scaled_prediction = (prediction / max_abs_health_values) * 100
     return scaled_prediction
 
 
-# Predict the carbon impact for a given year
 def predict_bio_carbon_impact(bio_score):
     prediction = bio_carbon_impact_model.predict(np.array([[bio_score]]))[0]
     scaled_prediction = (prediction / max_abs_bio_carbon_values) * 100
     return scaled_prediction
 
 
-# Predict the carbon impact for a given year
 def predict_bio_environment_impact(bio_score):
     prediction = bio_environment_impact_model.predict(np.array([[bio_score]]))[0]
     scaled_prediction = (prediction / max_abs_bio_environment_values) * 100
     return scaled_prediction
 
 
-# Predict the carbon impact for a given year
 def predict_bio_society_impact(bio_score):
     prediction = bio_society_impact_model.predict(np.array([[bio_score]]))[0]
     scaled_prediction = (prediction / max_abs_bio_society_values) * 100
     return scaled_prediction
 
 
-# Predict the carbon impact for a given year
 def predict_bio_health_impact(bio_score):
     prediction = bio_health_impact_model.predict(np.array([[bio_score]]))[0]
     scaled_prediction = (prediction / max_abs_bio_health_values) * 100
     return scaled_prediction
 
 
-# Load the CSV files
 merged_df = pd.read_csv('merged_df.csv')
 merged_df['Diversity_Score'] = merged_df.apply(calculate_diversity_score, axis=1)
 
@@ -385,14 +356,11 @@ if selected_tab == "Historical Data":
 
     if selected_country:
         lens_carbon, lens_environment, lens_society, lens_health = calculate_four_lens(country_data.iloc[0])
-        # country_lens = list(country_lens)
         country_diversity_score = country_data.iloc[0]['Diversity_Score']
         lens_values = [lens_carbon, lens_environment, lens_society, lens_health]
         print("# 2 #")
-        # print(lens_values)
         abs_max = max(map(abs, lens_values))
         normalized_lens_values = [value / abs_max * 100 for value in lens_values]
-        # print(normalized_lens_values)
         sum_normalized = sum(normalized_lens_values)
         if sum_normalized == 0:
             adjusted_lens_values = normalized_lens_values
@@ -400,16 +368,13 @@ if selected_tab == "Historical Data":
             scale_factor = 100 / sum_normalized
             adjusted_lens_values = [value * scale_factor for value in normalized_lens_values]
         adjusted_lens_values = np.clip(adjusted_lens_values, -100, 100)
-        # print(adjusted_lens_values)
         country_lens_df = pd.DataFrame({
             'Lens': ['Carbon', 'Environment', 'Society', 'Health'],
-            'Value': adjusted_lens_values  # [lens_carbon, lens_environment, lens_society, lens_health]
+            'Value': adjusted_lens_values
         })
 
-        # Display lenses and biodiversity score as circles in the same row
         st.subheader('Visualizations')
 
-        # Define CSS style for the container
         css_style = """
         <style>
         .circle-container {
@@ -441,12 +406,10 @@ if selected_tab == "Historical Data":
         </style>
         """
 
-        # Begin the circle container
         circle_html = """
         <div class='circle-container'>
         """
 
-        # Display lenses as circles with lens number on top
         for i, row in country_lens_df.iterrows():
             lens_number = row['Lens']
             lens_value = float(row['Value'])
@@ -458,7 +421,6 @@ if selected_tab == "Historical Data":
             </div>
             """
 
-        # Display biodiversity score in a green circle
         circle_html += f"""
         <div class='circle' style='background-color: #1f77b4;'>
             <div class='circle-number' style='font-size: 10px;'>Biodiversity</div>
@@ -466,12 +428,10 @@ if selected_tab == "Historical Data":
         </div>
         """
 
-        # End the circle container
         circle_html += """
         </div>
         """
 
-        # Render HTML using components.html
         html_output = css_style + circle_html
         html(html_output)
 
@@ -491,7 +451,6 @@ if selected_tab == "Historical Data":
 
         selected_style = st.sidebar.selectbox("Select Map Style", list(map_styles.keys()), index=0)
 
-        # Create a PyDeck map with tooltip and zoom focused on the selected country
         map_1 = pdk.Deck(
             map_style=map_styles[selected_style],
             layers=[
@@ -499,19 +458,18 @@ if selected_tab == "Historical Data":
                     "ScatterplotLayer",
                     data=country_data,
                     get_position=["Longitude", "Latitude"],
-                    get_fill_color=[255, 0, 0, 50],  # RGBA color for the points
+                    get_fill_color=[255, 0, 0, 50],
                     get_radius=100,
-                    tooltip=tooltip_content,  # Add tooltip
+                    tooltip=tooltip_content,
                 )
             ],
             initial_view_state={
-                "latitude": country_data["Latitude"].mean(),  # Center latitude of the selected country
-                "longitude": country_data["Longitude"].mean(),  # Center longitude of the selected country
-                "zoom": 3  # Adjust zoom level as needed
+                "latitude": country_data["Latitude"].mean(),
+                "longitude": country_data["Longitude"].mean(),
+                "zoom": 3
             }
         )
 
-        # Render the PyDeck map in the Streamlit app
         st.pydeck_chart(map_1)
 
 elif selected_tab == 'User Inputs':
@@ -524,10 +482,8 @@ elif selected_tab == 'User Inputs':
     selected_agricultural = st.sidebar.number_input('Enter Agricultural land (% of land area):', min_value=0.0,
                                                     max_value=100.0, step=0.01)
 
-    # Text input for forest area
     selected_forest = st.sidebar.number_input('Enter Forest area (% of land area):', min_value=0.0,
                                               max_value=100.0, step=0.01)
-    # Text input for wheat yield
     selected_wheat = st.sidebar.number_input('Enter Wheat Yield (tonnes/km2):', min_value=0.0,
                                              max_value=10.0, step=0.01)
     if selected_agricultural and selected_forest and selected_wheat:
@@ -543,11 +499,9 @@ elif selected_tab == 'User Inputs':
         })
         lens_values = [lens_carbon, lens_environment, lens_society, lens_health]
         print("# 1 #")
-        # print(lens_values)
         normalized_lens_values = [(value - min(lens_values)) / (max(lens_values) - min(lens_values)) * 200 - 100 for
                                   value
                                   in lens_values]
-        # print(normalized_lens_values)
         sum_normalized = sum(normalized_lens_values)
         if sum_normalized == 0:
             adjusted_lens_values = normalized_lens_values
@@ -555,22 +509,13 @@ elif selected_tab == 'User Inputs':
             scale_factor = 100 / sum_normalized
             adjusted_lens_values = [value * scale_factor for value in normalized_lens_values]
         adjusted_lens_values = np.clip(adjusted_lens_values, -100, 100)
-        # print(adjusted_lens_values)
         user_lens_df = pd.DataFrame({
             'Lens': ['Carbon', 'Environment', 'Society', 'Health'],
-            'Value': adjusted_lens_values  # [lens_carbon, lens_environment, lens_society, lens_health]
+            'Value': adjusted_lens_values
         })
 
-        # Display scorecard for user input
-        # if selected_agricultural and selected_forest and selected_wheat:
-        #     st.subheader('User Input Scorecard')
-        #     st.write(user_lens_df)
-        #
-        #     st.write('User Input Biodiversity Score:', user_diversity_score)
-        # Display lenses and biodiversity score as circles in the same row
         st.subheader('User Input Scorecard')
 
-        # Define CSS style for the container
         css_style = """
         <style>
         .circle-container {
@@ -602,14 +547,12 @@ elif selected_tab == 'User Inputs':
         </style>
         """
 
-        # Begin the circle container
         circle_html = """
         <div class='circle-container'>
         """
         print("*******")
         print(user_lens_df.head())
         print("*******")
-        # Display lenses as circles with lens number on top
         for i, row in user_lens_df.iterrows():
             lens_number = row['Lens']
             lens_value = float(row['Value'])
@@ -621,7 +564,6 @@ elif selected_tab == 'User Inputs':
             </div>
             """
 
-        # Display biodiversity score in a green circle
         circle_html += f"""
         <div class='circle' style='background-color: #1f77b4;'>
             <div class='circle-number' style='font-size: 10px;'>Biodiversity</div>
@@ -629,11 +571,9 @@ elif selected_tab == 'User Inputs':
         </div>
         """
 
-        # End the circle container
         circle_html += """
         </div>
         """
 
-        # Render HTML using components.html
         html_output = css_style + circle_html
         html(html_output)
